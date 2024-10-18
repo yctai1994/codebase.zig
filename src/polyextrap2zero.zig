@@ -1,10 +1,10 @@
-fn polyInterp(allocator: mem.Allocator, x: f64, xs: []f64, ys: []f64, n: usize) !f64 {
+fn polyExtrapZero(allocator: mem.Allocator, xs: []f64, ys: []f64, n: usize) !f64 {
     const offset: f64 = blk: {
         var min: f64 = math.inf(f64);
         var tmp: f64 = undefined;
         var ind: usize = undefined;
         for (0..n) |i| {
-            tmp = @abs(x - xs[i]);
+            tmp = @abs(0.0 - xs[i]);
             if (tmp == 0.0) return ys[i];
             if (tmp < min) {
                 min = tmp;
@@ -21,7 +21,7 @@ fn polyInterp(allocator: mem.Allocator, x: f64, xs: []f64, ys: []f64, n: usize) 
 
     for (1..n) |j| {
         for (0..n - j, 1..) |i, ip1| {
-            table[i] += (table[i] - table[ip1]) * (x - xs[i]) / (xs[i] - xs[i + j]);
+            table[i] += (table[i] - table[ip1]) / (xs[i + j] / xs[i] - 1.0);
         }
     }
 
@@ -34,12 +34,12 @@ fn func(x: f64) f64 {
     return (x + 1) * (x - 1) * (x - 2);
 }
 
-test "polyInterp" {
+test "polyExtrapZero" {
     const page = testing.allocator;
     var xs: [4]f64 = .{ -1.5, 0.5, 1.5, 2.5 };
     var ys: [4]f64 = undefined;
     for (xs, &ys) |x, *y| y.* = func(x);
-    try testing.expectEqual(func(-2.5), try polyInterp(page, -2.5, &xs, &ys, 4));
+    try testing.expectApproxEqAbs(func(0.0), try polyExtrapZero(page, &xs, &ys, 4), 3e-16);
 }
 
 // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
