@@ -98,6 +98,29 @@ const NewtonPolynomial = struct {
 
         return p;
     }
+
+    // Chebyshev sampling with boundary included
+    fn sampling(dest: []f64, order: usize) void {
+        debug.assert(order == flp2(order));
+        debug.assert(dest.len == order + 1);
+
+        var diff: f64 = 0.5 * math.pi; // δθ [π]
+
+        dest[0] = math.pi;
+        dest[1] = 0.0;
+
+        var k: usize = 1;
+
+        while (k < order) {
+            for (1..k + 1) |i| {
+                dest[k + i] = dest[i] + diff;
+            }
+            diff *= 0.5;
+            k <<= 1;
+        }
+
+        for (dest) |*ptr| ptr.* = @cos(ptr.*);
+    }
 };
 
 test "NewtonPolynomial" {
@@ -115,6 +138,26 @@ test "NewtonPolynomial" {
 }
 
 // = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+// power of radix 2 (flooring mode)
+fn flp2(x: usize) usize {
+    var y: usize = x;
+    y = y | (y >> 1);
+    y = y | (y >> 2);
+    y = y | (y >> 4);
+    y = y | (y >> 8);
+    y = y | (y >> 16);
+    return y - (y >> 1);
+}
+
+test "flp2" {
+    try testing.expectEqual(1, flp2(1));
+    comptime var n = 2;
+    inline while (n <= 32) : (n <<= 1) {
+        try testing.expectEqual(n, flp2(n));
+        try testing.expectEqual(n, flp2(n + 1));
+    }
+}
 
 fn func(x: f64) f64 {
     return (x + 1) * (x - 1) * (x - 2);
